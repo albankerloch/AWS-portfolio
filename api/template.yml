@@ -1,0 +1,70 @@
+Transform: AWS::Serverless-2016-10-31
+Description: SAM notes application api
+
+Parameters:
+  apiBucket:
+    Type: String
+    Default: '[apiBucket]'
+  tableName:
+    Type: String
+    Default: ContactSAM
+
+#### Enable tracing for functions and api
+
+Resources:
+
+  # contact API
+
+  contactAPISAM:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Name: contactAPISAM
+      Cors:
+        AllowMethods: "'*'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+      EndpointConfiguration:
+        Type: REGIONAL
+
+  # lambda functions and api events
+
+  addContactFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: add_contactSAM
+      CodeUri: add_contact/
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/service-role/contactLambda
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref contactTable
+      Events:
+        listNotes:
+          Type: Api
+          Properties:
+            RestApiId: !Ref contactAPISAM
+            Path: /contact
+            Method: post
+              
+              
+  # Dynamodb table
+  
+  contactTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref tableName
+      AttributeDefinitions:
+        - AttributeName: Mail
+          AttributeType: S
+        - AttributeName: Timestamp
+          AttributeType: N
+      KeySchema:
+        - AttributeName: Mail
+          KeyType: HASH
+        - AttributeName: Timestamp
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+  
+
