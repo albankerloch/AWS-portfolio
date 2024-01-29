@@ -2,14 +2,21 @@ Transform: AWS::Serverless-2016-10-31
 Description: SAM notes application api
 
 Parameters:
-  apiBucket:
-    Type: String
-    Default: '[apiBucket]'
   tableName:
     Type: String
     Default: ContactSAM
 
 #### Enable tracing for functions and api
+Globals:
+  Function:
+    Tracing: Active
+  Api:
+    TracingEnabled: true
+    MethodSettings:
+      - LoggingLevel: INFO
+        ResourcePath: '/*'
+        HttpMethod: '*'
+
 
 Resources:
 
