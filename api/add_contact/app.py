@@ -11,6 +11,7 @@ import time
 import logging
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core import patch_all
+from urllib.parse import parse_qs
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -42,10 +43,10 @@ def lambda_handler(event, context):
         params = extractParams(event)
 
         # Add X-Ray annotations to the trace
-        add_annotation(params['Mail'], params['Nom'], params['Message'])
+        add_annotation(params)
 
         # DynamoDB 'put_item' to add or update a note
-        newNoteId = upsertItem(dynamoDBResource, ddbTable, params['Mail'], params['Nom'], params['Message'])
+        newNoteId = upsertItem(dynamoDBResource, ddbTable, params)
 
     except Exception as e:
         print(e)
@@ -56,7 +57,7 @@ def lambda_handler(event, context):
     response['body'] = str(newNoteId)
     return response
 
-def upsertItem(dynamoDBResource, ddbTable, Mail, Nom, Message):
+def upsertItem(dynamoDBResource, ddbTable, params):
     print('upsertItem Function')
 
     # set the table's name identifier
@@ -66,20 +67,20 @@ def upsertItem(dynamoDBResource, ddbTable, Mail, Nom, Message):
     # do not match an existing note. If it does, it will update that note.
     table.put_item(
         Item={
-            'Mail': Mail,
-            'Timestamp': int(time.time()),
-            'Nom': Nom,
-            'Message': Message
+            'email': params['email'],
+            'timestamp': int(time.time()),
+            'name': params['name'],
+            'message': params['message']
         }
     )
-    return Mail
+    return params['email']
     
-def add_annotation(Mail, Nom, Message):
+def add_annotation(params):
     print('add_annotation Function')
     xray_recorder.begin_subsegment('Add a contact')
-    xray_recorder.put_annotation("Mail", Mail)
-    xray_recorder.put_annotation("Nom", Nom)
-    xray_recorder.put_annotation("Message", Message)
+    xray_recorder.put_annotation("email", params['email'])
+    xray_recorder.put_annotation("name", params['name'])
+    xray_recorder.put_annotation("message", params['message'])
     xray_recorder.end_subsegment()
 
 
@@ -87,12 +88,11 @@ def add_annotation(Mail, Nom, Message):
 def extractParams(event):
     print('extractParams Function')
     print(event["body"])
-    Mail = "MAIL TEST"
-    Nom = "NOM TEST"
-    Message = "MESSAGE TEST"
+    result = parse_qs(event["body"])
+    print(result)
     
     return {
-        'Mail': Mail,
-        'Nom': Nom,
-        'Message': Message
+        'email' : result['email'][0],
+        'name' : result['name'][0],
+        'message' : result['message'][0]
     }
