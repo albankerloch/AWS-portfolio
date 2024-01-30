@@ -42,13 +42,13 @@ Resources:
       FunctionName: add_contactSAM
       CodeUri: add_contact/
       Handler: app.lambda_handler
-      Runtime: python3.8
+      Runtime: python3.11
       Role: !Sub arn:aws:iam::${AWS::AccountId}:role/service-role/contactLambda
       Environment:
         Variables:
           TABLE_NAME: !Ref contactTable
       Events:
-        listNotes:
+        addContactPost:
           Type: Api
           Properties:
             RestApiId: !Ref contactAPISAM

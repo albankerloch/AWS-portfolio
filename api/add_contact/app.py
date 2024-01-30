@@ -53,8 +53,10 @@ def lambda_handler(event, context):
         response['body'] = e
         return response
         
-    response['statusCode'] = 200
-    response['body'] = str(newNoteId)
+    response['statusCode'] = 302
+    response['headers'] = {
+            'Location': 'http://portfolio-alban-kerloch-bucket.s3-website.eu-west-3.amazonaws.com/thanks.html',
+        }
     return response
 
 def upsertItem(dynamoDBResource, ddbTable, params):

@@ -2,7 +2,7 @@ import boto3
 import botocore
 import json
 import configparser
-
+import os
 
 def main(s3Client):
     print('Starting create website function...\n')
@@ -10,6 +10,21 @@ def main(s3Client):
     print('Reading configuration file for bucket name...')
     config = readConfig()
     bucket_name = config['bucket_name']
+    
+    # Chnage stack
+    print('Changing Stack...')
+    os.system('sam build --use-container --template api/template.yml')
+    os.system('sam deploy --stack-name contact-api --s3-bucket ' + bucket_name)
+
+
+    # Change api link in index.html
+    idAPI = getIdAPI()
+    print('Changing link to api ' + idAPI)
+    os.system("sed -i 's/XXXXXXXXXX.execute-api.eu-west-3.amazonaws.com/" + idAPI + ".execute-api.eu-west-3.amazonaws.com/' portfolio/index.html")
+    
+    # Enable public access
+    print('Enabling public access on the bucket...')
+    enablePublicAccess(s3Client, bucket_name)
 
     # Upload html files
     print('Uploading files for the website...')
@@ -28,30 +43,73 @@ def main(s3Client):
     current_region = session.region_name
     print('\nYou can access the website at:\n')
     print('http://' + bucket_name + '.s3-website.' + current_region +'.amazonaws.com')
+    
+    # Change api link in index.html
+    print('Revert API link to api ')
+    os.system("sed -i 's/" + idAPI + ".execute-api.eu-west-3.amazonaws.com/XXXXXXXXXX.execute-api.eu-west-3.amazonaws.com/' portfolio/index.html")
 
     print('\nEnd create website function...')
 
+def getIdAPI():
+    clientAPI = boto3.client('apigateway')
+    response = clientAPI.get_rest_apis()
+    for item in response['items']:
+        if item['name'] == 'contactAPISAM':
+            return(item['id'])
+    return('')
+
 
 def uploadWebsiteFiles(s3Client, bucket):
-    fileNames = getFileList()
-    for obj in fileNames:
-        key = obj['Name']
-        filename = './portfolio/' + key
-        contentType = obj['Content']
-        # Start TODO 8: Upload html/index.html and html/error.html the the bucket
-        s3Client.upload_file(
-            Filename=filename,
-            Bucket=bucket,
-            Key=key,
-            ExtraArgs={
-                'ContentType': contentType
-            }
-        )
-        # End TODO 8
+    for root, subdirs, files in os.walk("portfolio"):
+        for filename in files:
+            file_path = os.path.join(root, filename)[10:]
+            print(file_path)
+            s3Client.upload_file(
+                Filename='portfolio/' + file_path,
+                Bucket=bucket,
+                Key=file_path,
+                ExtraArgs={
+                    'ContentType': extract_content(file_path)
+                }
+            )
 
-
+def extract_content(file_path):
+    extension = file_path[file_path.rfind('.')+1:]
+    match extension:
+        case 'html':
+            return 'text/html'
+        case 'css':
+            return 'text/css'
+        case 'js':
+            return 'text/js'
+        case 'json':
+            return 'text/json'
+        case 'md':
+            return 'text/md'
+        case 'scss':
+            return 'text/scss'
+        case 'jpeg':
+            return 'image/jpeg'
+        case 'png':
+            return 'image/png'
+        case 'svg':
+            return 'image/svg+xml'
+        case _:
+            return "text/plain"
+            
+def enablePublicAccess(s3Client, bucket):
+    # enable S3 web hosting using the objects you uploaded in the last method
+    # as the index and error document for the website.
+    s3Client.put_public_access_block(
+        Bucket=bucket,
+        PublicAccessBlockConfiguration={
+            'BlockPublicPolicy': False,
+            'RestrictPublicBuckets': False
+        }
+    )
+    
 def enableWebHosting(s3Client, bucket):
-    # Start TODO 9: enable S3 web hosting using the objects you uploaded in the last method
+    # enable S3 web hosting using the objects you uploaded in the last method
     # as the index and error document for the website.
     s3Client.put_bucket_website(
         Bucket=bucket,
@@ -60,7 +118,6 @@ def enableWebHosting(s3Client, bucket):
             'IndexDocument': {'Suffix': 'index.html'},
         }
     )
-    # End TODO 9
 
 
 def allowAccessFromWeb(s3Client, bucket):
@@ -75,30 +132,12 @@ def allowAccessFromWeb(s3Client, bucket):
     }
     bucket_policy = json.dumps(bucket_policy)
 
-    # Start TODO 10: Apply the provided bucket policy to the website bucket
+    # Apply the provided bucket policy to the website bucket
     # to allow your objects to be accessed from the internet.
     s3Client.put_bucket_policy(
         Bucket=bucket,
         Policy=bucket_policy
     )
-    # End TODO 10
-
-
-def getFileList():
-    return [
-        {
-            "Name": 'index.html',
-            "Content": 'text/html'
-        },
-        {
-            "Name": 'index.js',
-            "Content": 'text/js'
-        },
-        {
-            "Name": 'css/style.css',
-            "Content": 'text/css'
-        }
-    ]
 
 
 def readConfig():
