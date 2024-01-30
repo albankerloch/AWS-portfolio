@@ -1,14 +1,41 @@
-         ___        ______     ____ _                 _  ___  
-        / \ \      / / ___|   / ___| | ___  _   _  __| |/ _ \ 
-       / _ \ \ /\ / /\___ \  | |   | |/ _ \| | | |/ _` | (_) |
-      / ___ \ V  V /  ___) | | |___| | (_) | |_| | (_| |\__, |
-     /_/   \_\_/\_/  |____/   \____|_|\___/ \__,_|\__,_|  /_/ 
- ----------------------------------------------------------------- 
+# AWS Portfolio
+
+An portfolio on AWS
+
+Features :
+- Use of AWS SDK in python to create a S3 bucket website
+- Use of AWS modern architecture :
+    - CloudFormation SAM template 
+    - API Getway
+    - Lamba function
+    - DynamoDB Database
+    - S3
+    - CloudWatch
+    - Xrays
+    - Cloud9
+    - IAM
 
 
-Hi there! Welcome to AWS Cloud9!
+## Installation
 
-To get started, create some files, play with the terminal,
-or visit https://docs.aws.amazon.com/console/cloud9/ for our documentation.
+In a Cloud9 environment : 
 
-Happy coding!
+
+```bash
+git clone --recurse-submodules git@github.com:albankerloch/aws-portfolio.git
+cd aws-portfolio
+pip3 install boto3
+python3 create_bucket.py
+python3 create_s3_website.py
+```
+
+(Python >=3.10 and suitable permissions needed)
+
+## Usage
+
+Visit the website at : http://portfolio-alban-kerloch-bucket.s3-website.eu-west-3.amazonaws.com/index.html
+(if your AWS region is Paris)
+
+#### Author : Alban Kerloc'h
+#### Category: Web, Devops
+#### Tag: AWS
